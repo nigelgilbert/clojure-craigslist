@@ -1,1 +1,3 @@
-(ns clojure-craigslist.util)
+(ns craigslist.util)
+
+(def select-values (comp vals select-keys))
