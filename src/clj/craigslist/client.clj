@@ -87,20 +87,17 @@
     (util/select-values
       (config :request-options) [:hostname :path])))
 
-(defn get-listings-callback [{:keys [status headers body error]}]
+(defn try-parse-listings [{:keys [status headers body error]}]
   (println (parse-markdown body)))
 
-(defn get-craigslist-listings [config]
-  (let [request-options (config :request-options)]
-    (http/get (make-url config) {} get-listings-callback)))
+(defn get-craigslist-listings [config callback]
+  (let [url (make-url config)]
+    (http/get url {} callback)))
 
 ;; test utils
 ;; TODO: remove
 (defn ref-src []
   (use 'craigslist.client :reload))
-
-(defn test-parse [] 
-  (parse-markdown (get-markdown)))
 
 (defn print-request-options [config]
   (println (config :request-options)))
@@ -110,4 +107,4 @@
 (defn search [options]
   (let [config (merge default-config options)]
     (-> (make-request-options config)
-        (get-craigslist-listings))))
+        (get-craigslist-listings try-parse-listings))))
