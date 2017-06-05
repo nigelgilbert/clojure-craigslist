@@ -9,29 +9,51 @@
 (def re-html (re-pattern #"(?i).htm(l)?"))
 (def re-tags-map (re-pattern #"/map/i"))
 
+;; utils 
+(def parse-as-hickory (comp hickory/as-hickory hickory/parse))
+(def select-child (fn [htree & selectors] 
+  (hs/select (hs/child ))))
+
 ;; test utils
 ;; TODO: remove
 (defn ref-parser []
   (use 'craigslist.parser :reload))
 
-(defn get-markdown []
-  (slurp (io/resource "listing.html")))
+;; filename = any file from resources/public
+(defn get-markdown [filename]
+  (slurp (io/resource filename)))
 
-(def selector fn []
-  (hs/child (hs/tag :body)))
-          
-(defn select-listings [hiccup-str]
-  (-> (hs/select (selector) hiccup-str)))
+(defn select-search-results [hickory-tree]
+  (hs/select (hs/child
+    (hs/tag :div)) hickory-tree))
 
-(defn parse-listings [{:keys [status headers body error]}]
+(defn test-parse-search-results []
   (println
-    (select-listings
-      (hickory/parse body))))
+    (select-search-results (parse-as-hickory
+      (get-markdown "search-results.html")))))
 
-; (-> (s/select (s/child (s/class "subCalender") ; sic
-;                               (s/tag :div)
-;                               (s/id :raceDates)
-;                               s/first-child
-;                               (s/tag :b))
-;                      site-htree)
-;            first :content first string/trim)
+(defn get-listing-description [htree]
+  (-> (hs/select (hs/child
+        (hs/id :postingbody)
+        (hs/not (hs/node-type :element))) htree)
+      (str/join)
+      (str/trim)))
+
+(defn get-listing-map-url [htree]
+  (-> (hs/select (hs/descendant
+        (hs/class :mapbox)
+        (hs/class :mapaddress)
+        (hs/tag :a)) htree)
+      (first)
+      (get-in [:attrs :href])))
+  
+(defn get-listing-reply-url [htree]
+  (-> (hs/select (hs/descendant
+        (hs/id :replylink)) htree)
+      (first)
+      (get-in [:attrs :href])))
+
+(defn test-parse-listing []
+    (get-listing-reply-url
+      (parse-as-hickory
+        (get-markdown "listing.html"))))
