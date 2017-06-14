@@ -11,8 +11,7 @@
 
 ;; utils 
 (def parse-as-hickory (comp hickory/as-hickory hickory/parse))
-(def select-child (fn [htree & selectors] 
-  (hs/select (hs/child ))))
+(def select-first (comp hs/select first))
 
 ;; test utils
 ;; TODO: remove
@@ -23,23 +22,31 @@
 (defn get-markdown [filename]
   (slurp (io/resource filename)))
 
-(defn select-search-results [hickory-tree]
-  (hs/select (hs/child
-    (hs/tag :div)) hickory-tree))
+(defn extract-posting-title [row-element]
+  (->> (hs/select (hs/child
+         (hs/class :result-title)) row-element)
+       (first)
+       (:content)
+       (map #(hash-map :tile %))
+       (first)))
+
+(defn select-search-postings [hickory-tree]
+  (->> (hs/select (hs/child
+         (hs/class :result-row)) hickory-tree)
+       (map extract-posting-title)))
 
 (defn test-parse-search-results []
-  (println
-    (select-search-results (parse-as-hickory
-      (get-markdown "search-results.html")))))
+  (select-search-postings (parse-as-hickory
+    (get-markdown "search-results.html"))))
 
-(defn get-listing-description [htree]
+(defn get-posting-description [htree]
   (-> (hs/select (hs/child
         (hs/id :postingbody)
         (hs/not (hs/node-type :element))) htree)
       (str/join)
       (str/trim)))
 
-(defn get-listing-map-url [htree]
+(defn get-posting-map-url [htree]
   (-> (hs/select (hs/descendant
         (hs/class :mapbox)
         (hs/class :mapaddress)
@@ -47,13 +54,22 @@
       (first)
       (get-in [:attrs :href])))
   
-(defn get-listing-reply-url [htree]
+(defn get-posting-reply-url [htree]
   (-> (hs/select (hs/descendant
         (hs/id :replylink)) htree)
       (first)
       (get-in [:attrs :href])))
 
-(defn test-parse-listing []
-    (get-listing-reply-url
+;; TODO: parse this
+(defn get-posting-info-div [htree]
+  (-> (hs/select (hs/descendant
+        (hs/class :postinginfos)) htree)
+      (first)
+      (get :content)))
+
+(defn test-parse-posting []
+    (get-posting-info-div
       (parse-as-hickory
-        (get-markdown "listing.html"))))
+        (get-markdown "posting.html"))))
+
+  
